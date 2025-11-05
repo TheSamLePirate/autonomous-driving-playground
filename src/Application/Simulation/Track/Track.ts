@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import * as CANNON from "cannon-es";
 import { DetectionObjectType } from "../Vehicle/DetectionObjectType";
 import { SENSIBLE_OBJECT_LAYER } from "../Vehicle/DistanceSensing";
 import {
@@ -61,7 +62,55 @@ const EXTREME_TRACK: TrackGrid = [
   ["C3","H","H","H","H","H","H","H","H","H","H","H","H","H","H","H","H","C2"],
 ];
 
-export function createTrack(group: THREE.Group, which: TrackId) {
+// Keep a reference to physics bodies attached to a given THREE.Group so we can cleanly remove them when regenerating the track
+function getOrInitPhysicsList(group: THREE.Group): CANNON.Body[] {
+  if (!group.userData.__physicsBodies) {
+    group.userData.__physicsBodies = [] as CANNON.Body[];
+  }
+  return group.userData.__physicsBodies as CANNON.Body[];
+}
+
+function disposePhysicsForGroup(group: THREE.Group, world: CANNON.World) {
+  const bodies = getOrInitPhysicsList(group);
+  for (const b of bodies) {
+    try {
+      world.removeBody(b);
+    } catch {}
+  }
+  bodies.length = 0;
+}
+
+function geometryToTrimesh(geom: THREE.BufferGeometry): CANNON.Trimesh | null {
+  const posAttr = geom.attributes.position as THREE.BufferAttribute | undefined;
+  if (!posAttr) return null;
+  // Ensure up-to-date geometry
+  geom.computeBoundingBox();
+  geom.computeBoundingSphere();
+  const vertices = Array.from(posAttr.array as Iterable<number>);
+  let indices: number[];
+  if (geom.index) {
+    indices = Array.from(geom.index.array as Iterable<number>);
+  } else {
+    // Build non-indexed triangle list indices
+    indices = [];
+    for (let i = 0; i < posAttr.count; i++) indices.push(i);
+  }
+  return new CANNON.Trimesh(vertices, indices);
+}
+
+function buildStaticBodyFromMesh(mesh: THREE.Mesh, worldPos: THREE.Vector3, worldQuat: THREE.Quaternion): CANNON.Body | null {
+  const geom = mesh.geometry as THREE.BufferGeometry | undefined;
+  if (!geom) return null;
+  const shape = geometryToTrimesh(geom);
+  if (!shape) return null;
+  const body = new CANNON.Body({ mass: 0 });
+  body.addShape(shape);
+  body.position.set(worldPos.x, worldPos.y, worldPos.z);
+  body.quaternion.set(worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w);
+  return body;
+}
+
+export function createTrack(group: THREE.Group, which: TrackId, world?: CANNON.World) {
   const grid = which === TrackId.EXTREME
     ? EXTREME_TRACK
     : which === TrackId.COMPLEX
@@ -72,6 +121,8 @@ export function createTrack(group: THREE.Group, which: TrackId) {
     const child = group.children[i];
     group.remove(child);
   }
+  // Also clear physics bodies if a world is supplied
+  if (world) disposePhysicsForGroup(group, world);
 
   for (let y = 0; y < grid.length; y++) {
     for (let x = 0; x < grid[y].length; x++) {
@@ -119,6 +170,27 @@ export function createTrack(group: THREE.Group, which: TrackId) {
           }
         });
         group.add(road);
+
+        // Create matching static physics bodies for collision if a world is provided
+        if (world) {
+          const physicsList = getOrInitPhysicsList(group);
+          // We need world-space transform for each Mesh
+          const worldPos = new THREE.Vector3();
+          const worldQuat = new THREE.Quaternion();
+          // Ensure matrices are current
+          road.updateWorldMatrix(true, true);
+          road.traverse(obj => {
+            const m = obj as THREE.Mesh;
+            if (!(m as any).isMesh || !m.geometry) return;
+            m.getWorldPosition(worldPos);
+            m.getWorldQuaternion(worldQuat);
+            const body = buildStaticBodyFromMesh(m, worldPos, worldQuat);
+            if (body) {
+              world.addBody(body);
+              physicsList.push(body);
+            }
+          });
+        }
       }
     }
   }

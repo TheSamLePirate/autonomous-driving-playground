@@ -45,7 +45,7 @@ export function createGround(world: CANNON.World, scene: THREE.Scene) {
   scene.add(shadowPlane);
 
   // Ajoute des arbres depuis Tree.glb (au lieu de cônes), avec corps physiques
-  //addTrees(world, scene, 60);
+  addTrees(world, scene, 60);
 
   // Add a person model with physics and detection
   // Placed near origin but off the center so sensors and the car can interact
@@ -94,12 +94,12 @@ async function addTrees(
   const originalHeight = size0.y || 1;
 
   // Anneau de dispersion sur le plan XZ
-  const minR = 12;
-  const maxR = 200;
+  const minR = 20;
+  const maxR = 400;
 
   for (let i = 0; i < count; i++) {
     // Hauteur cible similaire aux anciens cônes
-    const targetHeight = THREE.MathUtils.randFloat(2.0, 4.5);
+    const targetHeight = THREE.MathUtils.randFloat(4.0, 8.0);
     const scale = targetHeight / originalHeight;
 
     // Instance visuelle
@@ -137,7 +137,7 @@ async function addTrees(
     const cylShape = new CANNON.Cylinder(trunkRadius, trunkRadius, size.y, 10);
     const body = new CANNON.Body({ mass: 0 });
     body.addShape(cylShape);
-    body.position.set(x, size.y / 2, z);
+    body.position.set(x, (size.y / 2)-0.2, z);
     world.addBody(body);
 
     // Grouper l'instance pour la lier au corps physique

@@ -16,7 +16,7 @@ import {
   model3LowRes
 } from "./Vehicle/Car";
 import { DEFAULT_KEYS_1 } from "./Vehicle/CarControlKeys";
-``;
+ 
 
 import { observe } from "mobx";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -59,9 +59,9 @@ export async function start(container: HTMLElement) {
   createGround(world, scene);
   trackGroup = new THREE.Group();
   scene.add(trackGroup);
-  createTrack(trackGroup, appStore.trackId ?? TrackId.SIMPLE);
+  createTrack(trackGroup, appStore.trackId ?? TrackId.SIMPLE, world);
   observe(appStore, "trackId", change => {
-    createTrack(trackGroup, change.newValue);
+    createTrack(trackGroup, change.newValue, world);
   });
   if (VisualMode.showSensing) {
     createRayLines(scene);
