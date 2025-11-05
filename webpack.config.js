@@ -61,6 +61,10 @@ const config = {
         type: "asset/resource"
       },
       {
+        test: /\.(fbx)$/,
+        type: "asset/resource"
+      },
+      {
         test: /\.hdr$/,
         type: "asset/resource"
       },

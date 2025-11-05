@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.title {
+  font-weight: 600;
+}
+.row {
+  display: grid;
+  grid-template-columns: 70px 1fr 54px;
+  align-items: center;
+  gap: 8px;
+}
+.barBg {
+  background: rgba(255,255,255,0.08);
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3fa9f5 0%, #ff5f6d 100%);
+}
+.small {
+  font-size: 12px;
+  opacity: 0.74;
+}

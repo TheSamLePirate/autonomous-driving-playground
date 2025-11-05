@@ -5,7 +5,10 @@ import { toThreeQuaternion } from "../../Utils/Conversion";
 import { CarConfig } from "./Car";
 import { DetectionResult } from "./DetectionResult";
 
-const MAX_SENSING_DISTANCE = 5;
+export const MAX_SENSING_DISTANCE = 5;
+// Make the front sensor (index 0) see farther ahead by quadrupling its max range.
+const FRONT_SENSOR_INDEX = 0;
+const FRONT_SENSOR_MULTIPLIER = 8;
 export const SENSIBLE_OBJECT_LAYER = 1;
 
 const raycaster = new THREE.Raycaster();
@@ -18,9 +21,11 @@ export function detectNearestObjects(
   vehicle: RaycastVehicle,
   carConfig: CarConfig
 ): Array<DetectionResult> {
+  // Raise the ray a tiny bit above ground to avoid coplanar misses
+  const SENSOR_Y = 0.02; // must be < track half-height (0.05)
   const position = new THREE.Vector3(
     vehicle.chassisBody.position.x,
-    0,
+    SENSOR_Y,
     vehicle.chassisBody.position.z
   );
   const vehicleDirection = getHorizontalRotationAngle(
@@ -75,12 +80,15 @@ export function detectNearestObjects(
   const result = [];
   // Raycast in each direction and store the intersections
   for (let i = 0; i < 8; i++) {
+    const maxDistance =
+      (i === FRONT_SENSOR_INDEX ? FRONT_SENSOR_MULTIPLIER : 1) *
+      MAX_SENSING_DISTANCE;
     result.push(
       findNearestObject(
         scene,
         positions[i],
         directions[i],
-        MAX_SENSING_DISTANCE
+        maxDistance
       )
     );
   }

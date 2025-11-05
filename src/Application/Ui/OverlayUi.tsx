@@ -14,6 +14,10 @@ import SensingDisplay from "./SensingDisplay";
 import SimulationControls from "./SimulationControls";
 import SpeedDisplay from "./SpeedDisplay";
 import Timer from "./Timer";
+import ActivationOverlay from "./ActivationOverlay";
+import OutputLayer from "./OutputLayer";
+import TrainingToast from "./TrainingToast";
+import ObjectDetectionOverlay from "./ObjectDetectionOverlay";
 
 const OverlayUi = observer(() => {
   const rootStore = React.useContext(StoreContext);
@@ -45,9 +49,12 @@ interface ContentProps {
 const Content = ({ showManual }: ContentProps) => {
   return (
     <React.Fragment>
+      {/* Camera object detection overlay (active in cockpit view) */}
+      <ObjectDetectionOverlay />
       <div className={`${glassStyles.darkPanel} ${styles.simulationControls}`}>
         <SimulationControls />
       </div>
+      <TrainingToast />
       <div className={`${glassStyles.grayPanel} ${styles.speedPanel}`}>
         <SpeedDisplay />
       </div>
@@ -59,6 +66,7 @@ const Content = ({ showManual }: ContentProps) => {
       <div className={`${glassStyles.darkPanel} ${styles.sensingPanel}`}>
         <SensingDisplay />
       </div>
+      
       <div className={`${glassStyles.whitePanel} ${styles.steeringPanel}`}>
         <SteeringWheel />
       </div>
@@ -66,6 +74,7 @@ const Content = ({ showManual }: ContentProps) => {
         <BrakePedal />
         <ForcePedal />
       </div>
+      <ActivationOverlay />
       {showManual ? <ManualInstructionDialog /> : <></>}
     </React.Fragment>
   );

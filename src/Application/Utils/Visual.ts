@@ -3,6 +3,10 @@ import * as THREE from "three";
 import { VisualMode } from "../Config/VisualMode";
 import { setPosition, setQuaternion } from "./Conversion";
 
+// Simple per-frame update registry (e.g., for AnimationMixers)
+const frameUpdaters: Array<(dt: number) => void> = [];
+const frameClock = new THREE.Clock();
+
 const visuals: THREE.Group[] = [];
 const bodies: CANNON.Body[] = [];
 
@@ -11,16 +15,39 @@ export function pushVisual(
   visual: THREE.Group,
   scene: THREE.Scene
 ) {
+  // Ensure all meshes in the provided visual can cast and receive shadows
+  // (useful for GLTF models like the car chassis and wheels)
+  visual.traverse(obj => {
+    const mesh = obj as THREE.Mesh;
+    if ((mesh as any).isMesh) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    }
+  });
+
   scene.add(visual);
   bodies.push(body);
   visuals.push(visual);
 }
 
 export function updateVisual() {
+  const dt = frameClock.getDelta();
+  // Tick registered updaters first (animations, etc.)
+  for (let i = 0; i < frameUpdaters.length; i++) {
+    try {
+      frameUpdaters[i](dt);
+    } catch (e) {
+      // Swallow to avoid breaking render loop; could add debug log if needed
+    }
+  }
   visuals.forEach((visual, i) => {
     setPosition(visual, bodies[i].position);
     setQuaternion(visual, bodies[i].quaternion);
   });
+}
+
+export function registerFrameUpdate(updater: (dt: number) => void) {
+  frameUpdaters.push(updater);
 }
 
 export function addVisual(body: CANNON.Body, scene: THREE.Scene) {

@@ -1,7 +1,9 @@
+import { ENABLE_OBJECT_DETECTION } from "./FeatureFlag";
 export enum CameraMode {
   NONE,
   FOLLOW,
-  FOLLOW_BEHIND
+  FOLLOW_BEHIND,
+  COCKPIT
 }
 
 export const VisualMode = {
@@ -9,5 +11,7 @@ export const VisualMode = {
   showBody: false,
   showGroundGrid: true,
   showSensing: true,
-  cameraMode: CameraMode.FOLLOW
+  cameraMode: CameraMode.FOLLOW,
+  // runtime toggle for object detection overlay
+  showObjectDetection: ENABLE_OBJECT_DETECTION
 };

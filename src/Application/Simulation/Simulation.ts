@@ -5,7 +5,8 @@ import {
   setupCamera,
   setupOrbitControls,
   updateCameraFollow,
-  updateCameraFollowBehind
+  updateCameraFollowBehind,
+  updateCameraCockpit
 } from "./Camera";
 import {
   Car,
@@ -28,7 +29,8 @@ import { createTrack } from "./Track/Track";
 import { createRayLines } from "./Vehicle/DistanceSensing";
 import { createEnvironment } from "./World/Environment";
 import { createGround } from "./World/Ground";
-import { createSky } from "./World/Sky";
+import { createSky, createSun } from "./World/Sky";
+import { TrackId } from "../Config/TrackConfig";
 
 const appStore = rootStore.applicationStore;
 
@@ -37,19 +39,29 @@ const world = new CANNON.World({
 });
 let car: Car;
 const initCarPosition = new CANNON.Vec3(0, 2, 0);
+let trackGroup: THREE.Group;
 
 export async function start(container: HTMLElement) {
   const scene = new THREE.Scene();
   const camera = setupCamera(container);
   const renderer = setupRenderer(container);
+  // Expose renderer canvas for overlays (e.g., object detection)
+  rendererCanvas = renderer.domElement;
   const controls = setupOrbitControls(camera, renderer);
   setupOnResize(container, renderer, camera);
   setupGamepad(rootStore.carStore);
+  setupCameraToggleKey(controls);
 
   createEnvironment(scene, renderer);
   createSky(scene);
+  createSun(scene);
   createGround(world, scene);
-  createTrack(scene);
+  trackGroup = new THREE.Group();
+  scene.add(trackGroup);
+  createTrack(trackGroup, appStore.trackId ?? TrackId.SIMPLE);
+  observe(appStore, "trackId", change => {
+    createTrack(trackGroup, change.newValue);
+  });
   if (VisualMode.showSensing) {
     createRayLines(scene);
   }
@@ -101,6 +113,7 @@ async function createCar(config: CarConfig, scene: THREE.Scene) {
     world,
     scene,
     rootStore.carStore,
+    rootStore.learningStore,
     config
   );
   applyDriveCode(appStore.editorCode);
@@ -144,15 +157,36 @@ function updateCamera(camera: THREE.Camera, controls: OrbitControls) {
     case CameraMode.FOLLOW_BEHIND:
       updateCameraFollowBehind(camera, controls, car.vehicle);
       break;
+    case CameraMode.COCKPIT:
+      // Disable orbit interactions in cockpit
+      controls.enabled = false;
+      // Lazy import to avoid circulars already imported at top
+      // update is available from Camera.ts
+      // @ts-ignore - function imported at top
+      updateCameraCockpit(camera, controls, car.vehicle);
+      break;
     default:
     // No action
+  }
+  if (VisualMode.cameraMode !== CameraMode.COCKPIT) {
+    controls.enabled = true;
   }
 }
 function setupRenderer(container: HTMLElement) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
+  // Color management and tonemapping tuned for clear sky
+  // Using Reinhard here to avoid white clipping of the procedural Sky
+  // and to keep colors punchy without blowing out highlights.
+  // If you prefer ACES, we can switch back and adjust exposure.
+  renderer.outputColorSpace = THREE.SRGBColorSpace as any;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.5;
+  renderer.setClearColor(0x87ceeb, 1); // fallback sky blue background
+  // Enable soft shadows for the sun
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
   return renderer;
 }
@@ -170,6 +204,32 @@ function setupOnResize(
   window.addEventListener("resize", onCanvasResize, false);
 }
 
+// Public reference to the WebGL canvas used by the renderer, for consumers like UI overlays
+export let rendererCanvas: HTMLCanvasElement | null = null;
+export function getRendererCanvas(): HTMLCanvasElement | null {
+  return rendererCanvas;
+}
+
+// Track the previously active non-cockpit camera mode to allow toggling back
+let previousCameraMode: CameraMode = VisualMode.cameraMode;
+
+function setupCameraToggleKey(controls: OrbitControls) {
+  const onKeyDown = (e: KeyboardEvent) => {
+    const key = e.key.toLowerCase();
+    if (key === "c") {
+      if (VisualMode.cameraMode === CameraMode.COCKPIT) {
+        VisualMode.cameraMode = previousCameraMode;
+        controls.enabled = true;
+      } else {
+        previousCameraMode = VisualMode.cameraMode;
+        VisualMode.cameraMode = CameraMode.COCKPIT;
+        controls.enabled = false;
+      }
+    }
+  };
+  window.addEventListener("keydown", onKeyDown);
+}
+
 function onWindowResize(
   container: HTMLElement,
   renderer: THREE.WebGLRenderer,
@@ -178,5 +238,7 @@ function onWindowResize(
   camera.aspect = container.clientWidth / container.clientHeight;
   camera.updateProjectionMatrix();
 
+  // Keep renderer pixel ratio in sync (important when moving between displays with different DPR)
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
 }

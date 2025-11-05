@@ -11,8 +11,12 @@ import { addVisual, pushVisual } from "../../Utils/Visual";
 import { groundMaterial } from "../World/Ground";
 import { CarControlKeys } from "./CarControlKeys";
 import { DetectionResult } from "./DetectionResult";
-import { detectNearestObjects } from "./DistanceSensing";
+import { detectNearestObjects, MAX_SENSING_DISTANCE } from "./DistanceSensing";
 import { DriveAction } from "./DriveAction";
+import * as tf from "@tensorflow/tfjs";
+import { makeInputVector, Observation, makeSequenceInputVector, SEQ_LEN, INPUT_BASE_DIM } from "../../Learning/types";
+import { applyInputNormalization } from "../../Learning/model";
+import { LearningStore } from "../../Store/LearningStore";
 
 export const model3HighRes: CarConfig = {
   chassisModel: chassisModelFile,
@@ -63,11 +67,18 @@ export class Car {
   constructor(
     private initPosition: CANNON.Vec3,
     private carStore: CarStore,
-    public vehicle: CANNON.RaycastVehicle
+    public vehicle: CANNON.RaycastVehicle,
+    private learningStore: LearningStore
   ) {
     this.observeStore(carStore, vehicle);
   }
-  private drive: ((_: DetectionResult[]) => DriveAction) | undefined;
+  // User-provided driving policy (via eval). Back-compat: speed params are optional.
+  private drive:
+    | ((detectionResult: DetectionResult[], speedMS?: number, speedKph?: number) => DriveAction)
+    | undefined;
+  private lastSampleTime = 0;
+  private lastExpertAction: DriveAction | null = null;
+  private lastModelAction: DriveAction | null = null;
 
   reset() {
     this.carStore.applyBrake(0);
@@ -78,6 +89,9 @@ export class Car {
     this.vehicle.chassisBody.quaternion.set(0, 1, 0, 0);
     this.vehicle.chassisBody.angularVelocity.set(0, 0, 0);
     this.vehicle.chassisBody.velocity.set(0, 0, 0);
+    // Clear temporal state
+    this.obsHistory = [];
+    this.lastModelAction = null;
   }
 
   updateCarStateAfterPhysicsStep(scene: THREE.Scene) {
@@ -92,12 +106,73 @@ export class Car {
       this.carStore.carConfig
     );
     this.carStore.setDetectionResult(result);
+
+    // Learning: optionally record samples at ~20Hz
+    const now = Date.now();
+    if (now - this.lastSampleTime >= 50) {
+      this.lastSampleTime = now;
+      const learning = this.learningStore;
+      if (learning.recording !== "off") {
+        const obs = this.buildObservation();
+        let action: DriveAction | null = null;
+        if (learning.recording === "human" && this.carStore.isManualDriving) {
+          action = {
+            force: this.carStore.applyingForce,
+            brake: this.carStore.applyingBrake,
+            steering: this.carStore.steeringRad
+          };
+        } else if (learning.recording === "expert" && this.lastExpertAction) {
+          action = this.lastExpertAction;
+        }
+        if (action) {
+          const sample = {
+            obs: obs,
+            act: {
+              force: action.force,
+              steering: action.steering / MAX_STEER
+            },
+            t: now,
+            mode: learning.recording
+          };
+          learning.addSample(sample as any);
+        }
+      }
+    }
   }
 
   mayApplySelfDrive() {
     const detectionResult = this.carStore.detectionResult;
     if (!this.carStore.isManualDriving && this.carStore.isAutopilotEnabled) {
-      const action = this.runSelfDrive(detectionResult);
+      const learning = this.learningStore;
+      let action: DriveAction;
+      if (learning.autopilotSource === "model" && learning.modelBundle.model) {
+        action = this.runModelPolicy();
+      } else {
+        
+        action = this.runSelfDrive(detectionResult);
+        // Remember expert action for recording
+        this.lastExpertAction = action;
+      }
+      //if speed is bigger than 0.5, force = -0.2
+      
+
+      const front = detectionResult[0]?.distance ?? MAX_SENSING_DISTANCE;
+      //console.log("Front:", front);
+      const maxSpeed=5;
+      if (this.carStore.speedMS > maxSpeed  && front < 39) {
+
+        let slowDownForce = (this.carStore.speedMS - maxSpeed) / maxSpeed * 0.5; // Proportional braking force
+        //adapt the slowDownForce based on front distance
+        slowDownForce *= (39 - front) / 39; 
+        slowDownForce = Math.min(slowDownForce, 1); // Cap the braking force to 0.5
+        //action = { ...action, force: -slowDownForce};
+      }
+
+      // Safety: basic emergency brake if obstacle too close front
+      // const front = detectionResult[0]?.distance ?? MAX_SENSING_DISTANCE;
+      // if (front < 0.5) {
+      //   action = { ...action, brake: Math.max(action.brake, 1), force: Math.min(action.force, 0) };
+      // }
       this.carStore.applyForce(action.force);
       this.carStore.applyBrake(action.brake);
       this.carStore.setSteering(action.steering);
@@ -108,12 +183,89 @@ export class Car {
     if (!this.drive) {
       return { force: 0, brake: 0, steering: 0 };
     }
-    return this.drive(detectionResult);
+
+    // Pass current speed to user policy. Extra args are ignored by old code.
+    const speedMS = this.carStore.speedMS;
+    const speedKph = speedMS * 3.6;
+    return this.drive(detectionResult, speedMS, speedKph);
   }
 
   applyDriveCode(code: string) {
     eval(code);
   }
+
+  private buildObservation(): Observation {
+    const distances = (this.carStore.detectionResult || []).map(d => {
+      const dist = d?.distance ?? MAX_SENSING_DISTANCE;
+      return Math.max(0, Math.min(1, dist / MAX_SENSING_DISTANCE));
+    });
+    // Ensure 8 values
+    while (distances.length < 8) distances.push(1);
+    const speedKph = this.carStore.speedMS * 3.6;
+    // Normalize vehicle speed with 0..50 km/h range
+    const speed = Math.max(0, Math.min(1, speedKph / 50));
+  return { distances: distances.slice(0, 8), speed, speedKph };
+  }
+
+  private runModelPolicy(): DriveAction {
+    const bundle = this.learningStore.modelBundle;
+    const model = bundle.model!;
+    const norm = bundle.norm;
+    const obs = this.buildObservation();
+    // Determine expected input shape to stay compatible with older models
+  const inputTensor = Array.isArray(model.inputs) ? model.inputs[0] : model.inputs;
+  const shape = (inputTensor as any).shape as number[] | undefined;
+  const batchInputShape = ((model.layers?.[0] as any)?.batchInputShape) as number[] | undefined;
+  const rankGuess = (shape?.length ?? batchInputShape?.length ?? 0);
+  const isSequenceModel = rankGuess >= 3;
+    let input: tf.Tensor;
+    if (!isSequenceModel) {
+      // Legacy models without temporal stacking (2D input)
+      input = tf.tensor2d([makeInputVector(obs)]);
+    } else {
+      // Maintain observation history for temporal input and build 3D tensor
+      this.obsHistory.push(obs);
+      if (this.obsHistory.length > SEQ_LEN) {
+        this.obsHistory.splice(0, this.obsHistory.length - SEQ_LEN);
+      }
+      const windowVecs = makeSequenceInputVector(this.obsHistory, SEQ_LEN);
+      // windowVecs is flattened; reshape to [1, SEQ_LEN, INPUT_BASE_DIM]
+      input = tf.tensor3d(windowVecs, [1, SEQ_LEN, INPUT_BASE_DIM]);
+    }
+    const y = tf.tidy(() => {
+      let x = input as tf.Tensor;
+      // Apply the exact same normalization as training
+      x = applyInputNormalization(x, norm || null);
+      const out = model.predict(x) as tf.Tensor2D;
+      return out;
+    });
+    const arr = y.arraySync()[0];
+    y.dispose();
+    input.dispose();
+  // Outputs: [steering(-1..1), force(-1..1)] (brake removed from AI pipeline)
+  let steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, (arr?.[0] ?? 0) * MAX_STEER));
+  // Limit force (speed) activation magnitude to 0.4
+  let force = Math.max(-0.4, Math.min(0.4, arr?.[1] ?? 0));
+  // Brake is rule-based safety (not predicted)
+  let brake = 0;
+
+    // Temporal coherence: exponential smoothing of outputs
+    const prev = this.lastModelAction;
+    if (prev) {
+      const betaSteer = 0.7; // higher = smoother
+      const betaForce = 0.7;
+  const betaBrake = 0.5; // brake slightly more responsive
+      steering = betaSteer * prev.steering + (1 - betaSteer) * steering;
+      force = betaForce * prev.force + (1 - betaForce) * force;
+      brake = betaBrake * prev.brake + (1 - betaBrake) * brake;
+    }
+    const out: DriveAction = { steering, force, brake };
+    this.lastModelAction = out;
+    return out;
+  }
+
+  // Keep a short history of observations for temporal input stacking
+  private obsHistory: Observation[] = [];
 
   observeStore(carStore: CarStore, vehicle: CANNON.RaycastVehicle) {
     observe(carStore, "steeringRad", change => {
@@ -142,6 +294,7 @@ export async function createVehicle(
   world: CANNON.World,
   scene: THREE.Scene,
   carStore: CarStore,
+  learningStore: LearningStore,
   currentCarModel: CarConfig
 ): Promise<Car> {
   const chassisModel = await loadModel(currentCarModel.chassisModel);
@@ -154,7 +307,7 @@ export async function createVehicle(
 
   bindKeyEvent(controlKeys, carStore);
   carStore.setCarConfig(currentCarModel);
-  return new Car(position, carStore, vehicle);
+  return new Car(position, carStore, vehicle, learningStore);
 }
 
 function setupChassis(

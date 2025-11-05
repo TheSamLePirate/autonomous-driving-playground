@@ -1,0 +1,34 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.layer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.layerTitle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 60px;
+  overflow: hidden;
+}
+.bar {
+  width: 4px;
+  background: #888;
+}
+.small {
+  height: 120px;
+}

@@ -28,7 +28,7 @@ export function pollGamepads() {
  *
  * @returns An array of connected gamepads, or an empty array if not supported.
  */
-function getGamepadsSafely(): (Gamepad | null)[] {
+export function getGamepadsSafely(): (Gamepad | null)[] {
   if (navigator.getGamepads) {
     return navigator.getGamepads();
   } else {
@@ -109,3 +109,11 @@ export function registerGamepadAction(
 ) {
   gamepadActions.set(gamepadIndex, action);
 }
+
+/**
+ * Unregister actions for a specific gamepad index.
+ */
+export function unregisterGamepadAction(gamepadIndex: number) {
+  gamepadActions.delete(gamepadIndex);
+}
+

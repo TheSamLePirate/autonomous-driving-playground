@@ -7,10 +7,10 @@ export interface CarControlKeys {
 }
 
 export const DEFAULT_KEYS_1: CarControlKeys = {
-  applyForceKey: "w",
+  applyForceKey: "z",
   applyBackwardForceKey: "s",
   applyBreak: "b",
-  steerLeft: "a",
+  steerLeft: "q",
   steerRight: "d"
 };
 

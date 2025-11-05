@@ -1,7 +1,11 @@
 import * as THREE from "three";
 import { CSG } from "three-csg-ts";
 
-const material = new THREE.MeshStandardMaterial();
+const material = new THREE.MeshStandardMaterial({
+  color: 0x6e6e6e, // medium gray for track
+  roughness: 0.95,
+  metalness: 0.0
+});
 
 export const ROAD_BLOCK_SIZE = 10;
 const BOUNDARY_WIDTH = ROAD_BLOCK_SIZE / 8;

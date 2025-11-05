@@ -12,6 +12,8 @@ import CodeEditor from "./Ui/CodeDev/CodeEditor";
 import Console from "./Ui/CodeDev/Console";
 import DeployButton from "./Ui/CodeDev/DeployButton";
 import { Wasm } from "./Ui/CodeDev/Wasm";
+import LearningPanel from "./Ui/CodeDev/LearningPanel";
+import ActivationPanel from "./Ui/CodeDev/ActivationPanel";
 import OverlayUi from "./Ui/OverlayUi";
 
 const App = observer(() => {
@@ -68,6 +70,8 @@ const CodePane = ({ activeTab, setActiveTab }: TabProps) => {
         </div>
         <DeployButton />
         <AutopilotControlButton />
+        <LearningPanel />
+        <ActivationPanel />
       </Allotment.Pane>
       <Console />
     </Allotment>

@@ -83,8 +83,14 @@ function getObjectName(type: DetectionObjectType | null): string {
   switch (type) {
     case DetectionObjectType.TRACK:
       return "Track";
+    case DetectionObjectType.TREE:
+      return "Tree";
+    case DetectionObjectType.PERSON:
+      return "Person";
     case null:
       return "Empty";
+    default:
+      return "Unknown";
   }
 }
 

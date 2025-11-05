@@ -66,3 +66,12 @@
   left: 0;
   margin: 10px;
 }
+
+.outputPanel {
+  position: absolute;
+  top: 150px;
+  right: 0;
+  margin: 10px;
+  user-select: none;
+  pointer-events: auto;
+}

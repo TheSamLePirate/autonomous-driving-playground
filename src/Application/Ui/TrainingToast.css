@@ -1,0 +1,39 @@
+.container {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(20, 20, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #eef;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+.label {
+  font-weight: 600;
+}
+.barBg {
+  width: 160px;
+  height: 8px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3fa9f5 0%, #4caf50 100%);
+}
+.value {
+  width: 42px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.loss {
+  font-size: 12px;
+  opacity: 0.8;
+}
