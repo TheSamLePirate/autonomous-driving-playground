@@ -55,6 +55,7 @@ export async function start(container: HTMLElement) {
   createEnvironment(scene, renderer);
   createSky(scene);
   createSun(scene);
+  // Utilise uniquement le ciel procédural + soleil
   createGround(world, scene);
   trackGroup = new THREE.Group();
   scene.add(trackGroup);

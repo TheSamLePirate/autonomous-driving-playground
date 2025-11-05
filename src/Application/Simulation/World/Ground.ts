@@ -20,8 +20,8 @@ export function createGround(world: CANNON.World, scene: THREE.Scene) {
   groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
 
   world.addBody(groundBody);
-  if (VisualMode.showGroundGrid) {
-    const grid = new InfiniteGridHelper(1, 10);
+  if (VisualMode.showGroundGrid === true) {
+    const grid = new InfiniteGridHelper(1, 10, new THREE.Color(0x444444));
     scene.add(grid);
   } else {
     addVisual(groundBody, scene);
@@ -29,7 +29,7 @@ export function createGround(world: CANNON.World, scene: THREE.Scene) {
 
   // Add a large invisible shadow-catching plane so sunlight shadows become visible
   // even when the ground is a wireframe/grid.
-  const shadowMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+  const shadowMat = new THREE.ShadowMaterial({ opacity: 0.9 });
   shadowMat.depthWrite = false;
   shadowMat.polygonOffset = true;
   shadowMat.polygonOffsetFactor = 1;

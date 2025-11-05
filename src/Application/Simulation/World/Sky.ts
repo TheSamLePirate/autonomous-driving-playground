@@ -1,19 +1,20 @@
 import * as THREE from "three";
 import { Sky } from "three/examples/jsm/objects/Sky.js";
 
-// Reusable sky configuration for a realistic mid-day blue sky
+// Paramètres alignés sur le sample three.js sky + sun shader
 const skyConfig = {
-  turbidity: 2.0,
-  rayleigh: 2.5,
-  mieCoefficient: 0.003,
-  mieDirectionalG: 0.8,
-  elevation: 45, // sun height (degrees)
-  azimuth: 180 // sun azimuth (degrees)
+  turbidity: 1,
+  rayleigh: 3.0,
+  mieCoefficient: 0.005,
+  mieDirectionalG: 0.7,
+  elevation: 5, // soleil plus haut dans le ciel
+  azimuth: 80 // azimut du soleil (degrés)
 };
 
 export function createSky(scene: THREE.Scene) {
   const sky = new Sky();
-  // Keep the sky-dome within the camera far plane (far = 1000)
+  // Garder le dôme du ciel dans le plan de coupe far de la caméra (far ~ 1000)
+  // Le sample utilise 450000 avec un far géant; ici on reste à 900 pour éviter le clipping.
   sky.scale.setScalar(900);
 
   const uniforms = sky.material.uniforms;
@@ -46,15 +47,18 @@ export function createSun(scene: THREE.Scene) {
   sunLight.target.position.set(0, 0, 0);
   sunLight.castShadow = true;
 
-  // Higher quality, soft shadows for outdoor scene
-  sunLight.shadow.mapSize.set(2048, 2048);
-  sunLight.shadow.radius = 2;
-  // Reduce self-shadowing acne on detailed models
-  sunLight.shadow.bias = -0.0005;
+  // Haute définition des ombres (attention à la VRAM)
+  sunLight.shadow.mapSize.set(4096, 4096);
+  // Légèrement plus doux sans trop baver
+  sunLight.shadow.radius = 3;
+  // Réduire l'acné et les jaggies avec normalBias + léger bias
+  sunLight.shadow.bias = -0.0002;
+  (sunLight.shadow as any).normalBias = 0.02;
 
   // Orthographic shadow camera that covers the track area
   const cam = sunLight.shadow.camera as THREE.OrthographicCamera;
-  const range = 200; // half-extent
+  // Réduire le volume couvert pour augmenter la densité de texels
+  const range = 140; // half-extent (au lieu de 200)
   cam.left = -range;
   cam.right = range;
   cam.top = range;
@@ -68,7 +72,7 @@ export function createSun(scene: THREE.Scene) {
 
   // Optional: add a visual "sun disc" so users can see the sun position
   const disc = new THREE.Mesh(
-    new THREE.SphereGeometry(8, 32, 32),
+    new THREE.SphereGeometry(4, 32, 32),
     new THREE.MeshBasicMaterial({ color: 0xfff2c1 })
   );
   disc.position.copy(sunLight.position);
@@ -76,7 +80,7 @@ export function createSun(scene: THREE.Scene) {
   disc.layers.enableAll?.();
   // Draw on top from far distance, shouldn't be occluded in the sky
   (disc.material as THREE.Material).depthTest = false as any;
-  scene.add(disc);
+  //scene.add(disc);
 
   return sunLight;
 }
