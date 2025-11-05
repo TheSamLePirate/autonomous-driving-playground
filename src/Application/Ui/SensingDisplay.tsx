@@ -87,6 +87,8 @@ function getObjectName(type: DetectionObjectType | null): string {
       return "Tree";
     case DetectionObjectType.PERSON:
       return "Person";
+    case DetectionObjectType.BUILDING:
+      return "Building";
     case null:
       return "Empty";
     default:

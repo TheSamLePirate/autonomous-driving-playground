@@ -133,7 +133,7 @@ async function addTrees(
 
     // Physique: cylindre simplifié (tronc) aligné Y
     const canopyRadius = Math.max(size.x, size.z) * 0.5;
-    const trunkRadius = THREE.MathUtils.clamp(canopyRadius * 0.22, 0.08, 0.6);
+    const trunkRadius = THREE.MathUtils.clamp(canopyRadius * 0.1, 0.08, 0.6);
     const cylShape = new CANNON.Cylinder(trunkRadius, trunkRadius, size.y, 10);
     const body = new CANNON.Body({ mass: 0 });
     body.addShape(cylShape);

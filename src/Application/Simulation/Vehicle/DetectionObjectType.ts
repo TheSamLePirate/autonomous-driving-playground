@@ -1,5 +1,6 @@
 export enum DetectionObjectType {
   TRACK,
   TREE,
-  PERSON
+  PERSON,
+  BUILDING
 }

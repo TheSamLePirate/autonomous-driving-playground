@@ -110,6 +110,93 @@ function buildStaticBodyFromMesh(mesh: THREE.Mesh, worldPos: THREE.Vector3, worl
   return body;
 }
 
+// --- Buildings generation in empty spaces -------------------------------------------------------
+
+// Simple deterministic RNG based on cell coordinates to keep scene stable between runs
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function cellRng(x: number, y: number) {
+  // Large distinct primes for hashing coords
+  const seed = (x * 73856093) ^ (y * 19349663) ^ 0x9e3779b9;
+  return mulberry32(seed >>> 0);
+}
+
+const BUILDING_COLORS = [
+  0x9ea7ad, // light concrete gray
+  0x6c7a89, // slate
+  0x8d99ae, // blue-gray
+  0xb0b7bf, // pale gray
+  0x7f8c8d // concrete
+];
+
+type BuildingSpec = {
+  w: number;
+  d: number;
+  h: number;
+  x: number;
+  z: number;
+  color: number;
+};
+
+function randomInRange(rng: () => number, min: number, max: number) {
+  return min + rng() * (max - min);
+}
+
+function generateBuildingsForCell(x: number, y: number): { group: THREE.Group; specs: BuildingSpec[] } | null {
+  const rng = cellRng(x, y);
+  // Only place buildings in ~45% of empty cells to avoid overcrowding
+  if (rng() > 0.45) return null;
+
+  const group = new THREE.Group();
+  // Slight inner margin to keep clear from neighbouring road blocks visually
+  const margin = ROAD_BLOCK_SIZE * 0.1;
+  const half = ROAD_BLOCK_SIZE / 2;
+  const minSize = ROAD_BLOCK_SIZE * 0.15; // building base footprint min
+  const maxSize = ROAD_BLOCK_SIZE * 0.35; // building base footprint max
+  const minHeight = ROAD_BLOCK_SIZE * 0.8;
+  const maxHeight = ROAD_BLOCK_SIZE * 2.8;
+
+  const buildingCount = 1 + Math.floor(rng() * 3); // 1..3 buildings per selected cell
+  const specs: BuildingSpec[] = [];
+
+  for (let i = 0; i < buildingCount; i++) {
+    const w = randomInRange(rng, minSize, maxSize);
+    const d = randomInRange(rng, minSize, maxSize);
+    const h = randomInRange(rng, minHeight, maxHeight);
+    const color = BUILDING_COLORS[Math.floor(rng() * BUILDING_COLORS.length)];
+
+    // Random position within the cell with margin
+    const xLocal = randomInRange(rng, -half + margin + w / 2, half - margin - w / 2);
+    const zLocal = randomInRange(rng, -half + margin + d / 2, half - margin - d / 2);
+
+    specs.push({ w, d, h, x: xLocal, z: zLocal, color });
+  }
+
+  // Build meshes
+  for (const b of specs) {
+    const geom = new THREE.BoxGeometry(b.w, b.h, b.d);
+    const mat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.9, metalness: 0.0 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(b.x, b.h / 2, b.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = false;
+    // store dims for optional physics
+    (mesh as any).userData.__dims = { w: b.w, h: b.h, d: b.d };
+    group.add(mesh);
+  }
+
+  // Position the group at the world cell center
+  group.position.set(ROAD_BLOCK_SIZE * x, 0, ROAD_BLOCK_SIZE * y);
+  return { group, specs };
+}
+
 export function createTrack(group: THREE.Group, which: TrackId, world?: CANNON.World) {
   const grid = which === TrackId.EXTREME
     ? EXTREME_TRACK
@@ -127,7 +214,50 @@ export function createTrack(group: THREE.Group, which: TrackId, world?: CANNON.W
   for (let y = 0; y < grid.length; y++) {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
-      if (cell === " ") continue;
+      if (cell === " ") {
+        // Add buildings in large empty spaces to bring life to the environment
+        const res = generateBuildingsForCell(x, y);
+        if (res) {
+          const buildingsGroup = res.group;
+          buildingsGroup.traverse(obj => {
+            const mesh = obj as THREE.Mesh;
+            if ((mesh as any).isMesh) {
+              mesh.castShadow = true;
+              mesh.receiveShadow = false;
+              // Ensure buildings are sensed as BUILDING by the distance sensors
+              (mesh as any).userData.type = DetectionObjectType.BUILDING;
+              mesh.layers.enable(SENSIBLE_OBJECT_LAYER);
+            }
+          });
+          // Also set type/layer on the container for consistency
+          (buildingsGroup as any).userData.type = DetectionObjectType.BUILDING;
+          buildingsGroup.layers.enable(SENSIBLE_OBJECT_LAYER);
+          group.add(buildingsGroup);
+
+          if (world) {
+            const physicsList = getOrInitPhysicsList(group);
+            const worldPos = new THREE.Vector3();
+            const worldQuat = new THREE.Quaternion();
+            buildingsGroup.updateWorldMatrix(true, true);
+            buildingsGroup.traverse(obj => {
+              const m = obj as THREE.Mesh;
+              if (!(m as any).isMesh) return;
+              const dims = (m as any).userData?.__dims as { w: number; h: number; d: number } | undefined;
+              if (!dims) return;
+              m.getWorldPosition(worldPos);
+              m.getWorldQuaternion(worldQuat);
+              const shape = new CANNON.Box(new CANNON.Vec3(dims.w / 2, dims.h / 2, dims.d / 2));
+              const body = new CANNON.Body({ mass: 0 });
+              body.addShape(shape);
+              body.position.set(worldPos.x, worldPos.y, worldPos.z);
+              body.quaternion.set(worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w);
+              world.addBody(body);
+              physicsList.push(body);
+            });
+          }
+        }
+        continue;
+      }
       let road: THREE.Mesh | THREE.Object3D | undefined;
       switch (cell) {
         case "B":
