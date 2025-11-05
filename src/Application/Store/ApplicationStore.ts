@@ -10,17 +10,17 @@ this.drive = (detectionResult, speedMS, speedKph) => {
   // Safe accessors with fallbacks
   const d = i => (detectionResult[i] ? detectionResult[i].distance : 5);
   const distanceFront = d(0);       // forward (up to ~40 m)
-  const distanceFrontRight = d(1);  // front-right
-  const distanceFrontLeft = d(7);   // front-left
+  const distanceFrontRight = d(6);  // front-right
+  const distanceFrontLeft = d(5);   // front-left
   // Note: side corridor centering disabled on request
 
   // 1) Steering: keep it simple — just use front-right vs front-left difference
-  const MAX_STEER = 0.7; // matches sim
+  const MAX_STEER = 0.5; // matches sim
   const diff = (distanceFrontRight - distanceFrontLeft);
   const steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, diff));
 
   // 2) Desired speed with obstacle-aware modulation (in km/h)
-  const BASE_KPH = 30; // cruise target
+  const BASE_KPH = 40; // cruise target
   const MIN_OBS_KPH = 15; // slower target when obstacle in mid-range
   let desiredKph = BASE_KPH;
   if (distanceFront <= 5) {

@@ -45,7 +45,7 @@ export function createGround(world: CANNON.World, scene: THREE.Scene) {
   scene.add(shadowPlane);
 
   // Ajoute des arbres depuis Tree.glb (au lieu de cônes), avec corps physiques
-  addTrees(world, scene, 60);
+  //addTrees(world, scene, 60);
 
   // Add a person model with physics and detection
   // Placed near origin but off the center so sensors and the car can interact

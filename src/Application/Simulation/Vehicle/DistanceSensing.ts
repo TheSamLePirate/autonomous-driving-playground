@@ -32,56 +32,45 @@ export function detectNearestObjects(
     toThreeQuaternion(vehicle.chassisBody.quaternion)
   );
 
-  // Define directions for 8 evenly spaced angles (0 to 2π radians)
+  // Define 8 directions: 7 in front (multiples of PI/8 around forward) and 1 directly backward.
+  // Keep index 0 as straight ahead.
   const directions: THREE.Vector3[] = [];
-  for (let i = 0; i < 8; i++) {
-    const angle = (Math.PI / 4) * i + vehicleDirection; // 45-degree intervals
-    const direction = new THREE.Vector3(
-      Math.cos(angle),
-      0,
-      Math.sin(angle)
-    ).normalize();
-    directions.push(direction);
+  const step = Math.PI / 8; // 22.5°
+  const frontOffsets = [0, -1, 1, -2, 2, -3, 3]; // 7 rays around forward
+  for (let i = 0; i < frontOffsets.length; i++) {
+    const a = vehicleDirection + frontOffsets[i] * step;
+    directions.push(new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).normalize());
   }
+  // Last ray looks directly behind the car
+  directions.push(
+    new THREE.Vector3(
+      Math.cos(vehicleDirection + Math.PI),
+      0,
+      Math.sin(vehicleDirection + Math.PI)
+    ).normalize()
+  );
 
+  // All sensors originate from the front-center of the chassis, slightly above ground
   const positions: THREE.Vector3[] = [];
-  const width = carConfig.width;
   const length = carConfig.length;
-
   const front = new THREE.Vector3(length / 2, 0, 0);
-  const frontRightCorner = new THREE.Vector3(length / 2, 0, width / 2);
-  const right = new THREE.Vector3(0, 0, width / 2);
-  const rightRearCorner = new THREE.Vector3(-length / 2, 0, width / 2);
   const rear = new THREE.Vector3(-length / 2, 0, 0);
-  const rearLeftCorner = new THREE.Vector3(-length / 2, 0, -width / 2);
-  const left = new THREE.Vector3(0, 0, -width / 2);
-  const leftFrontCorner = new THREE.Vector3(length / 2, 0, -width / 2);
 
   // Rotate each vector by the provided angle
   const yAxis = new THREE.Vector3(0, -1, 0);
   front.applyAxisAngle(yAxis, vehicleDirection);
-  frontRightCorner.applyAxisAngle(yAxis, vehicleDirection);
-  right.applyAxisAngle(yAxis, vehicleDirection);
-  rightRearCorner.applyAxisAngle(yAxis, vehicleDirection);
   rear.applyAxisAngle(yAxis, vehicleDirection);
-  rearLeftCorner.applyAxisAngle(yAxis, vehicleDirection);
-  left.applyAxisAngle(yAxis, vehicleDirection);
-  leftFrontCorner.applyAxisAngle(yAxis, vehicleDirection);
-
-  positions.push(front.add(position));
-  positions.push(frontRightCorner.add(position));
-  positions.push(right.add(position));
-  positions.push(rightRearCorner.add(position));
-  positions.push(rear.add(position));
-  positions.push(rearLeftCorner.add(position));
-  positions.push(left.add(position));
-  positions.push(leftFrontCorner.add(position));
+  const frontWorld = front.add(position);
+  const rearWorld = rear.add(position);
+  // First 7 rays originate at front bumper center; last ray originates at rear center
+  for (let i = 0; i < 7; i++) positions.push(frontWorld.clone());
+  positions.push(rearWorld.clone());
 
   const result = [];
   // Raycast in each direction and store the intersections
   for (let i = 0; i < 8; i++) {
     const maxDistance =
-      (i === FRONT_SENSOR_INDEX ? FRONT_SENSOR_MULTIPLIER : 1) *
+      (i === FRONT_SENSOR_INDEX ? FRONT_SENSOR_MULTIPLIER : 8) *
       MAX_SENSING_DISTANCE;
     result.push(
       findNearestObject(

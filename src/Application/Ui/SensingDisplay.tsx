@@ -26,19 +26,19 @@ const SensingDisplay = observer(() => {
     <div>
       <div className={styles.detectedResult}>
         <div className={styles.row}>
-          <SensingResult result={detections[7]} />
-          <SensingResult result={detections[0]} />
           <SensingResult result={detections[1]} />
-        </div>
-        <div className={styles.row}>
-          <SensingResult result={detections[6]} />
-          <img className={styles.topViewImage} src={topViewImage} />
+          <SensingResult result={detections[0]} />
           <SensingResult result={detections[2]} />
         </div>
         <div className={styles.row}>
-          <SensingResult result={detections[5]} />
-          <SensingResult result={detections[4]} />
           <SensingResult result={detections[3]} />
+          <img className={styles.topViewImage} src={topViewImage} />
+          <SensingResult result={detections[4]} />
+        </div>
+        <div className={styles.row}>
+          <SensingResult result={detections[5]} />
+          <SensingResult result={detections[7]} />
+          <SensingResult result={detections[6]} />
         </div>
       </div>
       <div className={styles.divider} />
