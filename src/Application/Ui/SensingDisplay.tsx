@@ -43,13 +43,7 @@ const SensingDisplay = observer(() => {
       </div>
       <div className={styles.divider} />
       <div className={styles.drivingModeContainer}>
-        <div
-          className={`${styles.drivingMode} ${
-            carStore.isManualDriving ? styles.currentMode : ""
-          }`}
-        >
-          Manual
-        </div>
+        
         <div
           className={`${styles.drivingMode} ${
             carStore.isAutopilotEnabled ? styles.currentMode : ""
@@ -59,7 +53,7 @@ const SensingDisplay = observer(() => {
         </div>
       </div>
       <div className={styles.iconContainer}>
-        <Steering className={styles.icon} onClick={showManualInstruction} />
+        
         <Code className={styles.icon} onClick={toggleEditor} />
       </div>
     </div>

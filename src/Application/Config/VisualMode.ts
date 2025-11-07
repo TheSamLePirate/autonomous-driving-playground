@@ -13,5 +13,5 @@ export const VisualMode = {
   showSensing: true,
   cameraMode: CameraMode.FOLLOW,
   // runtime toggle for object detection overlay
-  showObjectDetection: ENABLE_OBJECT_DETECTION
+  showObjectDetection: !ENABLE_OBJECT_DETECTION
 };

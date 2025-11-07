@@ -73,7 +73,7 @@ const CodePane = ({ activeTab, setActiveTab }: TabProps) => {
         <LearningPanel />
         <ActivationPanel />
       </Allotment.Pane>
-      <Console />
+      
     </Allotment>
   );
 };
@@ -88,14 +88,6 @@ const Tabs = ({ activeTab, setActiveTab }: TabProps) => {
         onClick={setActiveTab.bind(this, Tab.JS)}
       >
         Javascript
-      </div>
-      <div
-        className={`${style.tab} ${
-          activeTab === Tab.WASM ? style.tabActive : ""
-        }`}
-        onClick={setActiveTab.bind(this, Tab.WASM)}
-      >
-        Web Assembly
       </div>
     </div>
   );

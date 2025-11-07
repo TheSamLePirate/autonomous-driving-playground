@@ -56,11 +56,13 @@ function attachMappingForGamepad(gp: Gamepad, carStore: CarStore) {
 
   const updateManualFlag = () => {
     // Consider any meaningful input as manual driving
+    
     const active =
       Math.abs(steerValue) > 0.05 ||
       Math.abs(axisThrottle) > 0.05 ||
       ltValue > 0.05 ||
       rtValue > 0.05;
+
     carStore.setIsManualDriving(active);
   };
 
@@ -79,6 +81,10 @@ function attachMappingForGamepad(gp: Gamepad, carStore: CarStore) {
     const triggerThrottle = rtValue - ltValue; // forward - backward
     const useTrigger = Math.abs(triggerThrottle) > 0.05;
     const value = useTrigger ? triggerThrottle : axisThrottle;
+    
+  
+    
+    
     carStore.applyForce(value);
     updateManualFlag();
   };
@@ -107,7 +113,10 @@ function attachMappingForGamepad(gp: Gamepad, carStore: CarStore) {
       STEERING_AXIS_INDEX,
       value => {
         steerValue = deadzone(value);
+        
         carStore.setSteering(steerValue);
+        
+
         updateManualFlag();
       }
     ],
@@ -116,7 +125,9 @@ function attachMappingForGamepad(gp: Gamepad, carStore: CarStore) {
       value => {
         // Up is typically -1; invert so up = forward (+)
         axisThrottle = -deadzone(value);
+        
         applyThrottle();
+        
       }
     ]
   ];

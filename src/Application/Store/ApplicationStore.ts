@@ -3,52 +3,52 @@ import { Tab } from "../Tab";
 import { TrackId } from "../Config/TrackConfig";
 
 export class ApplicationStore {
-  private defaultLogic = `// You can access the current speed as the 2nd/3rd params (m/s, km/h)
-// This default policy keeps speed around a target, slows down near obstacles,
-// and steers toward the more open side. Tune the constants to your taste.
+  private defaultLogic = `// Vous pouvez accéder à la vitesse actuelle via les 2e/3e paramètres (m/s, km/h)
+// Cette stratégie par défaut maintient la vitesse proche d'une cible, ralentit près des obstacles,
+// et oriente vers le côté le plus dégagé. Ajustez les constantes à votre goût.
 this.drive = (detectionResult, speedMS, speedKph) => {
-  // Safe accessors with fallbacks
+  // Accesseurs sûrs avec valeurs de repli
   const d = i => (detectionResult[i] ? detectionResult[i].distance : 5);
-  const distanceFront = d(0);       // forward (up to ~40 m)
-  const distanceFrontRight = d(1);  // front-right
-  const distanceFrontLeft = d(7);   // front-left
-  // Note: side corridor centering disabled on request
+  const distanceFront = d(0);       // avant (jusqu'à ~40 m)
+  const distanceFrontRight = d(1);  // avant-droit
+  const distanceFrontLeft = d(7);   // avant-gauche
+  // Remarque : recentrage sur le couloir latéral désactivé à la demande
 
-  // 1) Steering: keep it simple — just use front-right vs front-left difference
-  const MAX_STEER = 0.7; // matches sim
+  // 1) Direction : rester simple — utiliser seulement la différence avant-droit vs avant-gauche
+  const MAX_STEER = 0.7; // correspond à la simulation
   const diff = (distanceFrontRight - distanceFrontLeft);
   const steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, diff));
 
-  // 2) Desired speed with obstacle-aware modulation (in km/h)
-  const BASE_KPH = 30; // cruise target
-  const MIN_OBS_KPH = 15; // slower target when obstacle in mid-range
+  // 2) Vitesse souhaitée avec modulation sensible aux obstacles (en km/h)
+  const BASE_KPH = 30; // vitesse de croisière cible
+  const MIN_OBS_KPH = 15; // cible plus faible quand un obstacle est à distance moyenne
   let desiredKph = BASE_KPH;
   if (distanceFront <= 5) {
-    desiredKph = 0; // very close => stop
+    desiredKph = 0; // très proche => arrêt
   } else if (distanceFront < 30) {
-    // Smoothly interpolate between MIN_OBS_KPH (near) and BASE_KPH (far)
-    const t = (distanceFront - 5) / 25; // 0 at 5m, 1 at 30m
+    // Interpolation douce entre MIN_OBS_KPH (proche) et BASE_KPH (loin)
+    const t = (distanceFront - 5) / 25; // 0 à 5 m, 1 à 30 m
     const tClamped = Math.max(0, Math.min(1, t));
     desiredKph = MIN_OBS_KPH + (BASE_KPH - MIN_OBS_KPH) * tClamped;
   }
 
-  // 3) Speed control -> engine force (-1..1)
+  // 3) Contrôle de la vitesse -> force moteur (-1..1)
   const desiredMS = desiredKph / 3.6;
-  const v = typeof speedMS === 'number' ? speedMS : 0; // fallback if not provided
-  const kP = 0.5; // proportional gain for smooth response
+  const v = typeof speedMS === 'number' ? speedMS : 0; // valeur de repli si non fourni
+  const kP = 0.5; // gain proportionnel pour une réponse douce
   let force = kP * (desiredMS - v);
-  // Reduce throttle when turning to increase stability
+  // Réduire les gaz en virage pour augmenter la stabilité
   const turnDampen = 1 - 0.7 * Math.min(1, Math.abs(steering) / MAX_STEER);
   force *= Math.max(0.3, turnDampen);
-  // Clamp engine force
+  // Saturer la force moteur
   force = Math.max(-1, Math.min(1, force));
 
-  // 4) Safety braking: when very close, apply brake instead of strong reverse
+  // 4) Freinage de sécurité : très proche => appliquer le frein plutôt qu'une forte marche arrière
   let brake = 0;
   if (distanceFront < 4) {
-    // ramp 0..1 as 4m..0m
+    // rampe 0..1 de 4 m à 0 m
     brake = Math.max(0, Math.min(1, (4 - distanceFront) / 4));
-    force = Math.min(force, 0); // don't accelerate forward while braking
+    force = Math.min(force, 0); // ne pas accélérer vers l'avant pendant le freinage
   }
 
   return { force, brake, steering };

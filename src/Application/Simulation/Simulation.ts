@@ -227,6 +227,15 @@ function setupCameraToggleKey(controls: OrbitControls) {
         controls.enabled = false;
       }
     }
+    // key "f" for toggle follow behind and follow
+    if (key === "f") {
+      if (VisualMode.cameraMode === CameraMode.FOLLOW_BEHIND) {
+        VisualMode.cameraMode = previousCameraMode;
+      } else {
+        previousCameraMode = VisualMode.cameraMode;
+        VisualMode.cameraMode = CameraMode.FOLLOW_BEHIND;
+      }
+    }
   };
   window.addEventListener("keydown", onKeyDown);
 }
