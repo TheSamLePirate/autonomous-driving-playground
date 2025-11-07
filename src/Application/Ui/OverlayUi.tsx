@@ -28,6 +28,7 @@ const OverlayUi = observer(() => {
     case InitState.LOADING:
       return <Loading />;
     case InitState.READY:
+      rootStore.carStore.recordStartLapTime();
       return <Content showManual={appStore.isShowingManualInstruction} />;
   }
 });

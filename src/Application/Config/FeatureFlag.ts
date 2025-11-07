@@ -1,6 +1,6 @@
 export const ENABLE_CODE_EDITOR = isEnableCodeEditor();
 export const ENABLE_DEPLOY = true;
-export const ENABLE_TIMER = false;
+export const ENABLE_TIMER = true;
 export const ENABLE_OBJECT_DETECTION = isEnableObjectDetection();
 
 function isEnableDeploy(): boolean {
