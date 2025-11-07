@@ -12,6 +12,7 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
   // Some non-standard mappings expose triggers as axes — keep these indices as a fallback only.
   const LT_AXIS_INDEX = 2;
   const RT_AXIS_INDEX = 5;
+  const MANUAL_HOLD_MS = 400; // Keep manual mode for this time after last significant change
 
   let eventsInitialized = false;
 
@@ -46,21 +47,30 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
     // Helpers to normalize input
     const deadzone = (v: number, dz = 0.05) => (Math.abs(v) < dz ? 0 : v);
     const normTriggerAxis = (v: number) => (v + 1) / 2; // [-1,1] -> [0,1]
+    const nearlyEqual = (a: number, b: number, eps = 1e-3) => Math.abs(a - b) <= eps;
 
     // Internal state to combine inputs
     let axisThrottle = 0; // from stick Y (-1..1)
     let ltValue = 0; // 0..1
     let rtValue = 0; // 0..1
     let steerValue = 0; // -1..1
+    let lastSentSteer = Number.NaN;
+    let lastSentForce = Number.NaN;
+  let lastManualActive: boolean | undefined = undefined;
+  let lastInputChangeMs = 0;
+  let prevSteerInput = 0;
+  let prevAxisThrottle = 0;
+  let prevLt = 0;
+  let prevRt = 0;
 
     const updateManualFlag = (): boolean => {
-      // Consider any meaningful input as manual driving
-      const active =
-        Math.abs(steerValue) > 0.05 ||
-        Math.abs(axisThrottle) > 0.05 ||
-        ltValue > 0.05 ||
-        rtValue > 0.05;
-      carStore.setIsManualDriving(active);
+      // Manual active only briefly after last significant change
+      const now = Date.now();
+      const active = now - lastInputChangeMs <= MANUAL_HOLD_MS;
+      if (active !== lastManualActive) {
+        carStore.setIsManualDriving(active);
+        lastManualActive = active;
+      }
       return active;
     };
 
@@ -81,12 +91,30 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
       return useTrigger ? triggerThrottle : axisThrottle;
     };
 
+    const maybeSendSteer = (value: number) => {
+      if (!nearlyEqual(value, lastSentSteer)) {
+        carStore.setSteering(value);
+        lastSentSteer = value;
+      }
+    };
+
+    const maybeSendForce = (value: number) => {
+      if (!nearlyEqual(value, lastSentForce)) {
+        carStore.applyForce(value);
+        lastSentForce = value;
+      }
+    };
+
     // Build buttons map (always prefer triggers as buttons when available — correct for PlayStation)
     const buttonHandlers: Array<[number, (b: GamepadButton) => void]> = [
       [
         LT_BUTTON_INDEX,
         (btn: GamepadButton) => {
           ltValue = btn.value ?? (btn.pressed ? 1 : 0);
+          if (!nearlyEqual(ltValue, prevLt) && ltValue > 0.05) {
+            lastInputChangeMs = Date.now();
+          }
+          prevLt = ltValue;
           const manual = updateManualFlag();
           if (manual) {
             carStore.applyForce(computeThrottle());
@@ -97,6 +125,10 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
         RT_BUTTON_INDEX,
         (btn: GamepadButton) => {
           rtValue = btn.value ?? (btn.pressed ? 1 : 0);
+          if (!nearlyEqual(rtValue, prevRt) && rtValue > 0.05) {
+            lastInputChangeMs = Date.now();
+          }
+          prevRt = rtValue;
           const manual = updateManualFlag();
           if (manual) {
             carStore.applyForce(computeThrottle());
@@ -111,9 +143,13 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
         STEERING_AXIS_INDEX,
         (value: number) => {
           steerValue = deadzone(value);
+          if (!nearlyEqual(steerValue, prevSteerInput) && Math.abs(steerValue) > 0.05) {
+            lastInputChangeMs = Date.now();
+          }
+          prevSteerInput = steerValue;
           const manual = updateManualFlag();
           if (manual) {
-            carStore.setSteering(steerValue);
+            maybeSendSteer(steerValue);
           }
         }
       ],
@@ -122,9 +158,13 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
         (value: number) => {
           // Up is typically -1; invert so up = forward (+)
           axisThrottle = -deadzone(value);
+          if (!nearlyEqual(axisThrottle, prevAxisThrottle) && Math.abs(axisThrottle) > 0.05) {
+            lastInputChangeMs = Date.now();
+          }
+          prevAxisThrottle = axisThrottle;
           const manual = updateManualFlag();
           if (manual) {
-            carStore.applyForce(computeThrottle());
+            maybeSendForce(computeThrottle());
           }
         }
       ]
@@ -140,9 +180,13 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
           LT_AXIS_INDEX,
           (value: number) => {
             ltValue = normTriggerAxis(value);
+            if (!nearlyEqual(ltValue, prevLt) && ltValue > 0.05) {
+              lastInputChangeMs = Date.now();
+            }
+            prevLt = ltValue;
             const manual = updateManualFlag();
             if (manual) {
-              carStore.applyForce(computeThrottle());
+              maybeSendForce(computeThrottle());
             }
           }
         ],
@@ -150,9 +194,13 @@ const THROTTLE_AXIS_INDEX = 1; // Left stick Y (up = -1 on standard mapping)
           RT_AXIS_INDEX,
           (value: number) => {
             rtValue = normTriggerAxis(value);
+            if (!nearlyEqual(rtValue, prevRt) && rtValue > 0.05) {
+              lastInputChangeMs = Date.now();
+            }
+            prevRt = rtValue;
             const manual = updateManualFlag();
             if (manual) {
-              carStore.applyForce(computeThrottle());
+              maybeSendForce(computeThrottle());
             }
           }
         ]
