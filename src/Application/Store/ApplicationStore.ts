@@ -15,7 +15,7 @@ this.drive = (detectionResult, speedMS, speedKph) => {
   // Note: side corridor centering disabled on request
 
   // 1) Steering: keep it simple — just use front-right vs front-left difference
-  const MAX_STEER = 0.5; // matches sim
+  const MAX_STEER = 0.7; // matches sim
   const diff = (distanceFrontRight - distanceFrontLeft);
   const steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, diff));
 
