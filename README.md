@@ -1,51 +1,73 @@
-# Playground for Autonomous Driving
-An online space for user to program the virtual self-driving car, awatching it take on the tracks and racing with each others.
+# Sam the Driver - Simulateur de Conduite Autonome avec IA
 
-# 🏗 Work in progress
+Un environnement interactif pour entraîner une intelligence artificielle à conduire une voiture virtuelle sur circuit. Apprenez à l'IA à maîtriser la conduite grâce à l'apprentissage automatique !
+
+## 🚗 Caractéristiques
+
+- **Apprentissage par renforcement** : Entraînez une véritable IA à conduire
+- **Visualisation en temps réel** : Observez l'IA apprendre et s'améliorer
+- **Interface intuitive** : Contrôles simples pour gérer l'entraînement
+- **Environnement 3D** : Simulation réaliste avec physique et graphismes immersifs
+
+## � Démo en ligne
+
+Essayez la démo ici : (Les fichiers 3D sont volumineux, le chargement peut prendre un moment)
+
+https://sam-the-driver.puter.site/
+
 ![Screenshot 2023-11-06 at 11 19 06 PM](https://github.com/kelvinkoko/autonomous-driving-playground/assets/2594899/6a3b8f18-0135-49b7-9898-8de343463f32)
 
+## 💡 À propos
 
-This is a work in progress project, you can follow the latest development and the background of project from this blog:
+Ce projet est un fork de [autonomous-driving-playground](https://github.com/kelvinkoko/autonomous-driving-playground) avec l'ajout d'une véritable intelligence artificielle capable d'apprendre à conduire de manière autonome.
 
-https://medium.com/@kelvinkoko/list/playground-for-autonomous-driving-7cf682834992
+## 🛠 Développement
 
-Try out the latest demo here: (The 3D model file size is large which take time to load)
+Si vous souhaitez exécuter le projet localement ou contribuer au développement :
 
-https://playkuruma.web.app
+### Installation
 
-# Development
-If you are interested to run locally or interest to develop together, you can check out this repository
-
-run in local:
-```
-yarn run dev
+```bash
+npm install
 ```
 
-# License
-This project is licensed under the terms of the MIT license.
+### Lancer en local
 
-Basically, the source code of this project is free to use whatever way you want. But please note that this repository contains 3D models and images that have different licenses. Though I used assests with creative common license which is free to distrubute, but if you are planning for commerical use, please check the individual licenses. 
+```bash
+npm run dev
+```
 
-# Credits
-- The awsome 3D models used in this project:
+```
 
-Model 3's 3D model
+## 📝 License
 
-[large model](https://sketchfab.com/3d-models/tesla-2018-model-3-5ef9b845aaf44203b6d04e2c677e444f) (CC Attribution)
+Ce projet est sous licence MIT.
 
-[small model](https://sketchfab.com/3d-models/tesla-model-3-117d7dbdd6f94df9886c42995cdd06db) (CC Attribution-NonCommercial)
+Le code source de ce projet est libre d'utilisation. Veuillez noter que ce dépôt contient des modèles 3D et des images ayant des licences différentes. Bien que les ressources utilisées soient sous licence Creative Commons (libres de distribution), veuillez vérifier les licences individuelles en cas d'utilisation commerciale.
 
+## 🙏 Crédits
 
-- HRD Image:
+### Projet original
+- [autonomous-driving-playground](https://github.com/kelvinkoko/autonomous-driving-playground) par [@kelvinkoko](https://github.com/kelvinkoko)
 
-[Environment map](https://polyhaven.com/a/skidpan) (CC0)
+### Modèles 3D utilisés dans ce projet :
 
-- UI Image:
+**Modèle 3D de la Tesla Model 3**
 
-[Steering icons created by Andrejs Kirma - Flaticon](https://www.flaticon.com/free-icons/steering)
+[Modèle large](https://sketchfab.com/3d-models/tesla-2018-model-3-5ef9b845aaf44203b6d04e2c677e444f) (CC Attribution)
 
-[Pedal icons created by berkahicon - Flaticon](https://www.flaticon.com/free-icons/pedal)
+[Modèle compact](https://sketchfab.com/3d-models/tesla-model-3-117d7dbdd6f94df9886c42995cdd06db) (CC Attribution-NonCommercial)
 
-- UI Icons:
+### Image HDR :
 
-[Icons from svgrepo.com](https://www.svgrepo.com/)
+[Carte d'environnement](https://polyhaven.com/a/skidpan) (CC0)
+
+### Images UI :
+
+[Icônes de volant créées par Andrejs Kirma - Flaticon](https://www.flaticon.com/free-icons/steering)
+
+[Icônes de pédale créées par berkahicon - Flaticon](https://www.flaticon.com/free-icons/pedal)
+
+### Icônes UI :
+
+[Icônes de svgrepo.com](https://www.svgrepo.com/)

@@ -3,23 +3,20 @@ import { Tab } from "../Tab";
 import { TrackId } from "../Config/TrackConfig";
 
 export class ApplicationStore {
-  private defaultLogic = `// Vous pouvez accéder à la vitesse actuelle via les 2e/3e paramètres (m/s, km/h)
-// Cette stratégie par défaut maintient la vitesse proche d'une cible, ralentit près des obstacles,
-// et oriente vers le côté le plus dégagé. Ajustez les constantes à votre goût.
+  private defaultLogic = `
 this.drive = (detectionResult, speedMS, speedKph) => {
   // Accesseurs sûrs avec valeurs de repli
   const d = i => (detectionResult[i] ? detectionResult[i].distance : 5);
-  const distanceFront = d(0);       // forward (up to ~40 m)
-  const distanceFrontRight = d(6);  // front-right
-  const distanceFrontLeft = d(5);   // front-left
-  // Note: side corridor centering disabled on request
+  const distanceFront = d(0);       // devant (up to ~40 m)
+  const distanceFrontRight = d(6);  // devant-droit
+  const distanceFrontLeft = d(5);   // devant-gauche
 
-  // 1) Steering: keep it simple — just use front-right vs front-left difference
-  const MAX_STEER = 0.7; // matches sim
+  // steering - direction de braquage souhaitée, de -MAX_STEER (gauche) à +MAX_STEER (droite)
+  const MAX_STEER = 0.7; 
   const diff = (distanceFrontRight - distanceFrontLeft);
   const steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, diff));
 
-  // 2) Desired speed with obstacle-aware modulation (in km/h)
+  // Vitesse souhaitée en fonction de la distance avant
   const BASE_KPH = 40; // cruise target
   const MIN_OBS_KPH = 15; // slower target when obstacle in mid-range
   let desiredKph = BASE_KPH;
@@ -45,11 +42,11 @@ this.drive = (detectionResult, speedMS, speedKph) => {
 
   // 4) Freinage de sécurité : très proche => appliquer le frein plutôt qu'une forte marche arrière
   let brake = 0;
-  if (distanceFront < 4) {
+  //if (distanceFront < 4) {
     // rampe 0..1 de 4 m à 0 m
-    brake = Math.max(0, Math.min(1, (4 - distanceFront) / 4));
-    force = Math.min(force, 0); // ne pas accélérer vers l'avant pendant le freinage
-  }
+    //brake = Math.max(0, Math.min(1, (4 - distanceFront) / 4));
+    //force = Math.min(force, 0); // ne pas accélérer vers l'avant pendant le freinage
+  //}
 
   return { force, brake, steering };
 };

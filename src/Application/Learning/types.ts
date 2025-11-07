@@ -32,7 +32,7 @@ export interface NormalizationStats {
 // Base dimensionality for a single observation
 export const INPUT_BASE_DIM = 10; // 8 distances + 1 speed + 1 speedometer (km/h) — brake removed
 // Sequence length for temporal context (used in training and inference)
-export const SEQ_LEN = 5;
+export const SEQ_LEN = 1;
 // Effective input size with temporal stacking
 export const INPUT_DIM = INPUT_BASE_DIM * SEQ_LEN;
 export const OUTPUT_DIM = 2; // steering, force (brake removed from model outputs)

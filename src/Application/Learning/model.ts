@@ -9,8 +9,8 @@ export interface DriverModelBundle {
 export function createDriverModel(): tf.LayersModel {
   // Recurrent model over a short temporal window
   const model = tf.sequential();
-  model.add(tf.layers.gru({ inputShape: [SEQ_LEN, INPUT_BASE_DIM], units: 64, returnSequences: false }));
-  model.add(tf.layers.dense({ units: 32, activation: "relu" }));
+  model.add(tf.layers.gru({ inputShape: [SEQ_LEN, INPUT_BASE_DIM], units: 32, returnSequences: false }));
+  model.add(tf.layers.dense({ units: 16, activation: "relu" }));
   // outputs: [steering(-1..1), force(-1..1), brake(-1..1) -> mapped to [0,1] downstream]
   model.add(tf.layers.dense({ units: OUTPUT_DIM, activation: "tanh" }));
   model.compile({ optimizer: tf.train.adam(1e-3), loss: "meanSquaredError" });

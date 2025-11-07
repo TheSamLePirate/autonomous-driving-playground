@@ -70,7 +70,7 @@ export function detectNearestObjects(
   // Raycast in each direction and store the intersections
   for (let i = 0; i < 8; i++) {
     const maxDistance =
-      (i === FRONT_SENSOR_INDEX ? FRONT_SENSOR_MULTIPLIER : 8) *
+      (i === FRONT_SENSOR_INDEX ? FRONT_SENSOR_MULTIPLIER : 1) *
       MAX_SENSING_DISTANCE;
     result.push(
       findNearestObject(

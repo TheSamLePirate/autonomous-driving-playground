@@ -173,8 +173,14 @@ const ActivationOverlay = observer(() => {
               const w = wData[idx] || 0;
               // Normalize |w| to [0, 1] using layer max abs
               const wNorm = Math.abs(w) / maxAbs;
+              
+              //lower the small and medium weights to make the stronger ones more visible
+              const moreCotrastedNorm = wNorm < 0.2 ? wNorm * 0.3 : (wNorm < 0.5 ? wNorm * 0.6 : wNorm);
+
+
               // Map: 0 -> transparent, 1 -> white
-              const alpha = wNorm;
+              
+              const alpha = moreCotrastedNorm;
               ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
             } else {
               ctx.strokeStyle = "rgba(200,200,220,0.08)"; // fallback
