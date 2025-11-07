@@ -8,12 +8,17 @@ Un environnement interactif pour entraîner une intelligence artificielle à con
 - **Visualisation en temps réel** : Observez l'IA apprendre et s'améliorer
 - **Interface intuitive** : Contrôles simples pour gérer l'entraînement
 - **Environnement 3D** : Simulation réaliste avec physique et graphismes immersifs
+- **Manette Playstation** : Conduite analogique avec une manette
+- **Conduite** : Manuelle, Algorythmique ou Reseau de neurone
+- **Visualisation du réseau de neurone** : Chaque neurone est visible !!
+
 
 ## � Démo en ligne
 
 Essayez la démo ici : (Les fichiers 3D sont volumineux, le chargement peut prendre un moment)
 
 https://sam-the-driver.puter.site/
+
 
 ![Screenshot 2023-11-06 at 11 19 06 PM](https://github.com/kelvinkoko/autonomous-driving-playground/assets/2594899/6a3b8f18-0135-49b7-9898-8de343463f32)
 
