@@ -4,7 +4,7 @@ Un environnement interactif pour entraîner une intelligence artificielle à con
 
 ## 🚗 Caractéristiques
 
-- **Apprentissage par renforcement** : Entraînez une véritable IA à conduire
+- **Apprentissage profond** : Entraînez une véritable IA à conduire
 - **Visualisation en temps réel** : Observez l'IA apprendre et s'améliorer
 - **Interface intuitive** : Contrôles simples pour gérer l'entraînement
 - **Environnement 3D** : Simulation réaliste avec physique et graphismes immersifs
