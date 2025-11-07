@@ -26,6 +26,52 @@ const ActivationOverlay = observer(() => {
   const car = root.carStore;
   const learning = root.learningStore;
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  // Cache layer weights once per model to avoid repeated reads and accidental disposals
+  const weightCacheRef = React.useRef<{
+    mats: Array<Float32Array | null>;
+    dims: Array<[number, number] | null>;
+    maxAbs: number[];
+  }>({ mats: [], dims: [], maxAbs: [] });
+
+  // Rebuild weight cache whenever the base model changes
+  React.useEffect(() => {
+    const baseModel = learning.modelBundle.model as tf.LayersModel | null;
+    const mats: Array<Float32Array | null> = [];
+    const dims: Array<[number, number] | null> = [];
+    const maxAbs: number[] = [];
+    if (baseModel) {
+      for (let i = 0; i < baseModel.layers.length; i++) {
+        const L: any = baseModel.layers[i];
+        const className = typeof L.getClassName === "function" ? L.getClassName() : (L.className || "");
+        if (className === "Dense") {
+          const weights = L.getWeights?.() as tf.Tensor[] | undefined;
+          if (weights && weights[0]) {
+            const kernel = weights[0]; // [in, out]
+            const shape = kernel.shape as [number, number];
+            const data = kernel.dataSync() as Float32Array; // copy from backend
+            let m = 0;
+            for (let k = 0; k < data.length; k++) {
+              const a = Math.abs(data[k]);
+              if (a > m) m = a;
+            }
+            mats[i] = data; // store typed array copy
+            dims[i] = shape;
+            maxAbs[i] = m > 1e-9 ? m : 1;
+          } else {
+            mats[i] = null;
+            dims[i] = null;
+            maxAbs[i] = 1;
+          }
+          // Do NOT dispose weights here; they may alias layer variables in tfjs runtime.
+        } else {
+          mats[i] = null;
+          dims[i] = null;
+          maxAbs[i] = 1;
+        }
+      }
+    }
+    weightCacheRef.current = { mats, dims, maxAbs };
+  }, [learning.modelBundle.model]);
 
   const draw = React.useCallback(() => {
     const canvas = canvasRef.current;
@@ -112,12 +158,27 @@ const ActivationOverlay = observer(() => {
     // Edges
     if (learning.showActivationEdges) {
       ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(200,200,220,0.08)";
+      const { mats: weightMats, dims: weightDims, maxAbs: weightMaxAbs } = weightCacheRef.current;
       for (let c = 0; c < cols - 1; c++) {
         const from = nodePositions[c];
         const to = nodePositions[c + 1];
+        const wData = weightMats[c];
+        const dims = weightDims[c];
+        const maxAbs = (weightMaxAbs[c] || 1);
+        const canColor = !!wData && !!dims && dims[0] === from.length && dims[1] === to.length;
         for (let i = 0; i < from.length; i++) {
           for (let j = 0; j < to.length; j++) {
+            if (canColor && wData && dims) {
+              const idx = i * dims[1] + j;
+              const w = wData[idx] || 0;
+              // Normalize |w| to [0, 1] using layer max abs
+              const wNorm = Math.abs(w) / maxAbs;
+              // Map: 0 -> transparent, 1 -> white
+              const alpha = wNorm;
+              ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            } else {
+              ctx.strokeStyle = "rgba(200,200,220,0.08)"; // fallback
+            }
             ctx.beginPath();
             ctx.moveTo(from[i].x, from[i].y);
             ctx.lineTo(to[j].x, to[j].y);
