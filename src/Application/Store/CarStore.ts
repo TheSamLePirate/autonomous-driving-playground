@@ -18,6 +18,7 @@ export class CarStore {
 
   constructor() {
     makeAutoObservable(this);
+    this.recordStartLapTime();
   }
 
   setSpeed(speedMS: number) {

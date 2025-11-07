@@ -27,7 +27,7 @@ const SimulationControls = () => {
         }}
         title="Toggle TensorFlow.js object detection overlay"
       >
-        Object Detection
+        Object Detection 
       </div>
     </div>
   );

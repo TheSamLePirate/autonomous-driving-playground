@@ -6,17 +6,20 @@ import {
   ROAD_BLOCK_SIZE,
   createBlock,
   createCurveRoad,
-  createStraightRoad
+  createStraightRoad,
+  createCrossRoad,
+  createTCrossRoad
 } from "./Road";
 import { TrackId } from "../../Config/TrackConfig";
 
-type Tile = "B" | "H" | "V" | "C1" | "C2" | "C3" | "C4" | " ";
+type Tile = "B" | "H" | "V" | "C1" | "C2" | "C3" | "C4" | " " | "+" | "T1" | "T2" | "T3" | "T4";
 type TrackGrid = Tile[][];
 
 const SIMPLE_TRACK: TrackGrid = [
-  ["C4", "H", "H", "H", "H", "C1"],
-  ["C3", "H", "H", "H", "C1", "V"],
-  ["B", "B", "B", "B", "C3", "C2"]
+  ["C4", "H", "T1", "H", "H", "C1"],
+  ["C3", "H", "+", "H", "H", "T2"],
+  [" ", "B", "C3", "H", "H", "C2"],
+  ["C3", " ", " ", " ", " ", " "]
 ];
 
 // A more complex loop with multiple turns and straights. Space means empty.
@@ -283,6 +286,24 @@ export function createTrack(group: THREE.Group, which: TrackId, world?: CANNON.W
           break;
         case "C4":
           road = createCurveRoad();
+          road.rotateY(Math.PI / 2);
+          break;
+        case "+":
+          road = createCrossRoad();
+          break;
+        case "T1":
+          road = createTCrossRoad();
+          break;
+        case "T2":
+          road = createTCrossRoad();
+          road.rotateY(-Math.PI / 2);
+          break;
+        case "T3":
+          road = createTCrossRoad();
+          road.rotateY(Math.PI);
+          break;
+        case "T4":
+          road = createTCrossRoad();
           road.rotateY(Math.PI / 2);
           break;
       }

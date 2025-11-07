@@ -15,7 +15,7 @@ import {
   model3HighRes,
   model3LowRes
 } from "./Vehicle/Car";
-import { DEFAULT_KEYS_1 } from "./Vehicle/CarControlKeys";
+import { DEFAULT_KEYS_1, DEFAULT_KEYS_2 } from "./Vehicle/CarControlKeys";
  
 
 import { observe } from "mobx";
@@ -110,7 +110,7 @@ async function createCar(config: CarConfig, scene: THREE.Scene) {
   appStore.setInitState(InitState.LOADING);
   car = await createVehicle(
     initCarPosition,
-    DEFAULT_KEYS_1,
+    DEFAULT_KEYS_2,
     world,
     scene,
     rootStore.carStore,
@@ -225,6 +225,15 @@ function setupCameraToggleKey(controls: OrbitControls) {
         previousCameraMode = VisualMode.cameraMode;
         VisualMode.cameraMode = CameraMode.COCKPIT;
         controls.enabled = false;
+      }
+    }
+    // key "f" for toggle follow behind and follow
+    if (key === "f") {
+      if (VisualMode.cameraMode === CameraMode.FOLLOW_BEHIND) {
+        VisualMode.cameraMode = previousCameraMode;
+      } else {
+        previousCameraMode = VisualMode.cameraMode;
+        VisualMode.cameraMode = CameraMode.FOLLOW_BEHIND;
       }
     }
   };

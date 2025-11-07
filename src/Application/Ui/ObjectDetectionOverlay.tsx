@@ -61,15 +61,7 @@ const ObjectDetectionOverlay: React.FC = () => {
       const overlay = overlayRef.current;
       if (!canvas || !overlay) return;
 
-      // Only run in cockpit mode
-      if (VisualMode.cameraMode !== CameraMode.COCKPIT) {
-        // Clear overlay when not in cockpit
-        const ctx = overlay.getContext("2d");
-        if (ctx) {
-          ctx.clearRect(0, 0, overlay.width, overlay.height);
-        }
-        return;
-      }
+      // Previously restricted to cockpit mode; now run in any camera mode when enabled
 
       // Match overlay bitmap size to the renderer canvas' backing resolution (accounts for devicePixelRatio)
       // Important: coco-ssd returns bboxes in the source's pixel space (canvas.width/height),

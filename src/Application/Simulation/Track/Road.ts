@@ -37,6 +37,8 @@ export function createStraightRoad() {
   return CSG.subtract(plane, road);
 }
 
+
+
 export function createCurveRoad() {
   const planeGeometry = new THREE.BoxGeometry(
     ROAD_BLOCK_SIZE,
@@ -67,5 +69,86 @@ export function createCurveRoad() {
   smallCylinder.updateMatrix();
   const curveMesh = CSG.subtract(largeCylinder, smallCylinder);
   const mesh = CSG.subtract(plane, curveMesh);
+  return mesh;
+}
+
+export function createCrossRoad() {
+  const planeGeometry = new THREE.BoxGeometry(
+    ROAD_BLOCK_SIZE,
+    BLOCK_HEIGHT,
+    ROAD_BLOCK_SIZE
+  );
+  const plane = new THREE.Mesh(planeGeometry, material);
+  
+  const ROAD_WIDTH = ROAD_BLOCK_SIZE - BOUNDARY_WIDTH * 2;
+  
+  // Create horizontal road cutout
+  const horizontalRoadGeometry = new THREE.BoxGeometry(
+    ROAD_BLOCK_SIZE,
+    BLOCK_HEIGHT,
+    ROAD_WIDTH
+  );
+  const horizontalRoad = new THREE.Mesh(horizontalRoadGeometry, material);
+  
+  // Create vertical road cutout
+  const verticalRoadGeometry = new THREE.BoxGeometry(
+    ROAD_WIDTH,
+    BLOCK_HEIGHT,
+    ROAD_BLOCK_SIZE
+  );
+  const verticalRoad = new THREE.Mesh(verticalRoadGeometry, material);
+  
+  // Update matrices for CSG operations
+  plane.updateMatrix();
+  horizontalRoad.updateMatrix();
+  verticalRoad.updateMatrix();
+  
+  // Subtract horizontal road from plane
+  let mesh = CSG.subtract(plane, horizontalRoad);
+  
+  // Subtract vertical road from result to create the X crossroad
+  mesh = CSG.subtract(mesh, verticalRoad);
+  
+  return mesh;
+}
+
+export function createTCrossRoad() {
+  const planeGeometry = new THREE.BoxGeometry(
+    ROAD_BLOCK_SIZE,
+    BLOCK_HEIGHT,
+    ROAD_BLOCK_SIZE
+  );
+  const plane = new THREE.Mesh(planeGeometry, material);
+  
+  const ROAD_WIDTH = ROAD_BLOCK_SIZE - BOUNDARY_WIDTH * 2;
+  
+  // Create horizontal road cutout (full width)
+  const horizontalRoadGeometry = new THREE.BoxGeometry(
+    ROAD_BLOCK_SIZE,
+    BLOCK_HEIGHT,
+    ROAD_WIDTH
+  );
+  const horizontalRoad = new THREE.Mesh(horizontalRoadGeometry, material);
+  
+  // Create vertical road cutout (half height, positioned at bottom)
+  const verticalRoadGeometry = new THREE.BoxGeometry(
+    ROAD_WIDTH,
+    BLOCK_HEIGHT,
+    ROAD_BLOCK_SIZE / 2
+  );
+  const verticalRoad = new THREE.Mesh(verticalRoadGeometry, material);
+  verticalRoad.position.set(0, 0, ROAD_BLOCK_SIZE / 4);
+  
+  // Update matrices for CSG operations
+  plane.updateMatrix();
+  horizontalRoad.updateMatrix();
+  verticalRoad.updateMatrix();
+  
+  // Subtract horizontal road from plane
+  let mesh = CSG.subtract(plane, horizontalRoad);
+  
+  // Subtract vertical road from result to create the T crossroad
+  mesh = CSG.subtract(mesh, verticalRoad);
+  
   return mesh;
 }

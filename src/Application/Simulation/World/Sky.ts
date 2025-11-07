@@ -7,7 +7,7 @@ const skyConfig = {
   rayleigh: 3.0,
   mieCoefficient: 0.005,
   mieDirectionalG: 0.7,
-  elevation: 5, // soleil plus haut dans le ciel
+  elevation: 10, // soleil plus haut dans le ciel
   azimuth: 80 // azimut du soleil (degrés)
 };
 
