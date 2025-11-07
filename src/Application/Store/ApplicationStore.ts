@@ -9,19 +9,19 @@ export class ApplicationStore {
 this.drive = (detectionResult, speedMS, speedKph) => {
   // Accesseurs sûrs avec valeurs de repli
   const d = i => (detectionResult[i] ? detectionResult[i].distance : 5);
-  const distanceFront = d(0);       // avant (jusqu'à ~40 m)
-  const distanceFrontRight = d(1);  // avant-droit
-  const distanceFrontLeft = d(7);   // avant-gauche
-  // Remarque : recentrage sur le couloir latéral désactivé à la demande
+  const distanceFront = d(0);       // forward (up to ~40 m)
+  const distanceFrontRight = d(6);  // front-right
+  const distanceFrontLeft = d(5);   // front-left
+  // Note: side corridor centering disabled on request
 
-  // 1) Direction : rester simple — utiliser seulement la différence avant-droit vs avant-gauche
-  const MAX_STEER = 0.7; // correspond à la simulation
+  // 1) Steering: keep it simple — just use front-right vs front-left difference
+  const MAX_STEER = 0.5; // matches sim
   const diff = (distanceFrontRight - distanceFrontLeft);
   const steering = Math.max(-MAX_STEER, Math.min(MAX_STEER, diff));
 
-  // 2) Vitesse souhaitée avec modulation sensible aux obstacles (en km/h)
-  const BASE_KPH = 30; // vitesse de croisière cible
-  const MIN_OBS_KPH = 15; // cible plus faible quand un obstacle est à distance moyenne
+  // 2) Desired speed with obstacle-aware modulation (in km/h)
+  const BASE_KPH = 40; // cruise target
+  const MIN_OBS_KPH = 15; // slower target when obstacle in mid-range
   let desiredKph = BASE_KPH;
   if (distanceFront <= 5) {
     desiredKph = 0; // très proche => arrêt
